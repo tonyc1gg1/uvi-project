@@ -4,9 +4,47 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>首頁</title>
+
+    <style>
+        body{
+            text-align: center;
+            background-color: rgb(255, 255, 255);
+        }
+        
+        table{
+            width: 80%;
+            margin: 0 auto;
+        }
+        
+        th{
+            background: wheat;
+        }
+          
+        
+    </style>
+
+
 </head>
 <body>
-    <h1>歡迎登入</h1>
-    <p>目前時間:</p>
+    <h1>紫外線指數(UVI)</h1>
+    <table border="1">
+        <thead>
+            <tr>
+                {% for col in columns %}
+                <th>{{col}}</th>
+                {% endfor %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in datas %}
+            <tr>
+                {% for data in row %}
+                <td>{{data}}</td>
+                {% endfor %}
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+    
 </body>
 </html>
