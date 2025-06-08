@@ -4,30 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>首頁</title>
-
-    <style>
-        body{
-            text-align: center;
-            background-color: rgb(255, 255, 255);
-        }
-        
-        table{
-            width: 80%;
-            margin: 0 auto;
-        }
-        
-        th{
-            background: wheat;
-        }
-          
-        
-    </style>
-
-
+    <link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
+    
 </head>
 <body>
     <h1>紫外線指數(UVI)</h1>
-    <a href="/update_db">更新資料庫</a>
+    <h3>最新更新時間:{{datas[0][3]}}</h3>
+    <a class="btn-update" href="/update_db">更新資料庫</a>
     <table border="1">
         <thead>
             <tr>

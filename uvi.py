@@ -59,7 +59,7 @@ def get_uvi_data_from_mysql():
         conn = open_db()
         cur = conn.cursor()
         # sqlstr="(select MAX(datacreationdate) from uvi);"
-        sqlstr = "select * from uvi where datacreationdate=(select MAX(datacreationdate) from uvi);"
+        sqlstr = "select sitename,uvi,county,datacreationdate from uvi where datacreationdate=(select MAX(datacreationdate) from uvi);"
         cur.execute(sqlstr)
         # 輸出資料表欄位
         print(cur.description)
