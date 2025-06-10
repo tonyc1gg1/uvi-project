@@ -74,6 +74,23 @@ h3 {
   color: #c0392b;
 }
 
+select{
+  font-size: 18px;
+}
+
+
 form {
   margin: 12px;
 }
+
+#map{
+  width: 100%;
+  height: 90vh;
+}
+
+#selector{
+margin: 10px;
+text-align: center;
+}
+
+

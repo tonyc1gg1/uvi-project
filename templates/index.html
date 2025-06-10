@@ -4,13 +4,98 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>首頁</title>
+
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
     
 </head>
 <body>
-    <h1>紫外線指數(UVI)</h1>
+    <h1>全球太陽紫外線指數(UVI)-台灣監測站資料</h1>
     <h3>最新更新時間:{{datas[0][3]}}</h3>
     <a class="btn-update" href="/update_db">更新資料庫</a>
+    
+    <div id="selector">
+        <form action="/" method="GET">
+            <label for="county">選取縣市</label>
+            <!-- 縣市選擇框 -->
+            <select name="county" id="county" onchange="this.form.submit()">
+                <option value="ALL">全部縣市</option>
+                {% for county in counties %}
+                <option value="{{county}}" {% if selected_county == county %} selected {% endif %}>{{county}}</option>
+                {% endfor %}
+            </select>
+            <!-- <button type="submit">查詢</button> -->
+        </form>
+    </div>
+
+    <h2 >目前縣市:{{selected_county}}</h2>
+
+
+    <div id="map"></div>
+
+    <script>
+    const uviData = `uvi_data|tojson` ;
+    const selectedCounty = "{{ selected_county }}";
+
+    const myChart = echarts.init(document.getElementById('map'));
+    myChart.showLoading();
+
+    $.get('https://geo.datav.aliyun.com/areas/bound/710000_full.json', function (taiwanJson) {
+      myChart.hideLoading();
+      echarts.registerMap('Taiwan', taiwanJson);
+
+      const option = {
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}<br/>UVI: {county}'
+        },
+        visualMap: {
+          min: 0,
+          max: 11,
+          left: 'left',
+          top: 'bottom',
+          text: ['高', '低'],
+          calculable: true,
+          inRange: {
+            color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+          }
+        },
+        series: [
+          {
+            name: '紫外線指數',
+            type: 'map',
+            map: 'Taiwan',
+            roam: true,
+            label: {
+              show: true,
+              fontSize: 12
+            },
+            data: uviData,
+            emphasis: {
+              label: { show: true },
+              itemStyle: {
+                areaColor: 'rgba(255,255,0,0.5)',
+                borderColor: '#000',
+                borderWidth: 1
+              }
+            }
+          }
+        ]
+      };
+
+      myChart.setOption(option);
+
+      // 高亮選中的縣市（如果不是 ALL）
+      if (selectedCounty !== "ALL") {
+        myChart.dispatchAction({
+          type: 'highlight',
+          name: selectedCounty
+        });
+      }
+    });
+  </script>
+
     <table border="1">
         <thead>
             <tr>
