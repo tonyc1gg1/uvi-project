@@ -15,86 +15,76 @@
     <h3>最新更新時間:{{datas[0][3]}}</h3>
     <a class="btn-update" href="/update_db">更新資料庫</a>
     
-    <div id="selector">
-        <form action="/" method="GET">
-            <label for="county">選取縣市</label>
-            <!-- 縣市選擇框 -->
-            <select name="county" id="county" onchange="this.form.submit()">
-                <option value="ALL">全部縣市</option>
-                {% for county in counties %}
-                <option value="{{county}}" {% if selected_county == county %} selected {% endif %}>{{county}}</option>
-                {% endfor %}
-            </select>
-            <!-- <button type="submit">查詢</button> -->
-        </form>
-    </div>
-
+    
+    <form action="/" method="GET">
+        <label for="county">選取縣市</label>
+        <!-- 縣市選擇框 -->
+        <select name="county" id="county" >
+            <option value="ALL">全部縣市</option>
+            {% for county in counties %}
+            <option value="{{county}}" {% if selected_county == county %} selected {% endif %}>{{county}}</option>
+            {% endfor %}
+        </select>
+        <button type="submit">查詢</button> 
+    </form>
+    
     <h2 >目前縣市:{{selected_county}}</h2>
 
-
     <div id="map"></div>
-
+    
     <script>
-    const uviData = `uvi_data|tojson` ;
-    const selectedCounty = "{{ selected_county }}";
+      const uviData = {{ uvi_data | tojson | safe }};
 
-    const myChart = echarts.init(document.getElementById('map'));
-    myChart.showLoading();
+      // ✅ 初始化圖表要在最外層，確保 myChart 有定義
+      const myChart = echarts.init(document.getElementById("map"));
+      myChart.showLoading();
 
-    $.get('https://geo.datav.aliyun.com/areas/bound/710000_full.json', function (taiwanJson) {
-      myChart.hideLoading();
-      echarts.registerMap('Taiwan', taiwanJson);
+      // ✅ 使用正確的 GeoJSON 來源
+      $.get('/static/twCounty2010.geo.json', function (geoJson) {
+        myChart.hideLoading();
 
-      const option = {
-        tooltip: {
-          trigger: 'item',
-          formatter: '{b}<br/>UVI: {county}'
-        },
-        visualMap: {
-          min: 0,
-          max: 11,
-          left: 'left',
-          top: 'bottom',
-          text: ['高', '低'],
-          calculable: true,
-          inRange: {
-            color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
-          }
-        },
-        series: [
-          {
-            name: '紫外線指數',
+        if (!geoJson || !geoJson.features) {
+          alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
+          return;
+        }
+
+        // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
+        geoJson.features.forEach(f => {
+          f.properties.name = f.properties.COUNTYNAME;
+        });
+
+        echarts.registerMap('Taiwan', geoJson);
+
+        const option = {
+          
+          tooltip: {
+            trigger: 'item',
+            formatter: '{b}<br/>UVI: {c}'
+          },
+          visualMap: {
+            min: 0,
+            max: 11,
+            left: 'left',
+            top: 'bottom',
+            text: ['高', '低'],
+            calculable: true,
+            inRange: {
+              color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+            }
+          },
+          series: [{
+            name: 'UVI',
             type: 'map',
             map: 'Taiwan',
             roam: true,
-            label: {
-              show: true,
-              fontSize: 12
-            },
-            data: uviData,
-            emphasis: {
-              label: { show: true },
-              itemStyle: {
-                areaColor: 'rgba(255,255,0,0.5)',
-                borderColor: '#000',
-                borderWidth: 1
-              }
-            }
-          }
-        ]
-      };
+            label: { show: true },
+            data: uviData
+          }]
+        };
 
-      myChart.setOption(option);
-
-      // 高亮選中的縣市（如果不是 ALL）
-      if (selectedCounty !== "ALL") {
-        myChart.dispatchAction({
-          type: 'highlight',
-          name: selectedCounty
-        });
-      }
-    });
-  </script>
+        myChart.setOption(option);
+      });
+    </script>
 
     <table border="1">
         <thead>
