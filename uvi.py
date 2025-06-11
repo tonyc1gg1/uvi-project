@@ -59,11 +59,12 @@ def get_uvi_data_from_mysql():
     try:
         conn = open_db()
         cur = conn.cursor()
-        # sqlstr="(select MAX(datacreationdate) from uvi);"
+
         sqlstr = """
-        SELECT sitename, uvi, county, datacreationdate
+        SELECT county, ROUND(AVG(uvi), 2) AS uvi_avg
         FROM uvi
-        WHERE datacreationdate >= CURDATE();
+        WHERE datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
+        GROUP BY county
         """
         cur.execute(sqlstr)
         # 輸出資料表欄位

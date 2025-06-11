@@ -12,7 +12,7 @@
 </head>
 <body>
   <h1>全球太陽紫外線指數(UVI)-台灣監測站資料</h1>
-  <h3>最新更新時間:{{datas[0][3]}}</h3>
+  <h3>最新更新時間: {{ nowtime }}</h3>
   <a class="btn-update" href="/update_db">更新資料庫</a>
     
     
@@ -30,97 +30,108 @@
     
   <h2 >目前縣市:{{selected_county}}</h2>
 
-    <div id="map"></div>
-    
-    <script>
-      const uviData = {{ uvi_data | tojson | safe }};
+  <button id="toggleButton">切換圖表</button>
+  <div id="map"></div>
+  
+  <script>
+    const uviData = {{ uvi_data | tojson | safe }};
+    const selectedCounty = "{{ selected_county }}";
+    const isAllCounty = (selectedCounty === "ALL");
+    // ✅ 初始化圖表要在最外層，確保 myChart 有定義
+    const myChart = echarts.init(document.getElementById("map"));
+    myChart.showLoading();
 
-      // ✅ 初始化圖表要在最外層，確保 myChart 有定義
-      const myChart = echarts.init(document.getElementById("map"));
-      myChart.showLoading();
+    // ✅ 使用正確的 GeoJSON 來源
+    $.get('/static/twCounty2010.geo.json', function (geoJson) {
+      myChart.hideLoading();
 
-      // ✅ 使用正確的 GeoJSON 來源
-      $.get('/static/twCounty2010.geo.json', function (geoJson) {
-        myChart.hideLoading();
+      if (!geoJson || !geoJson.features) {
+        alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
+        return;
+      }
 
-        if (!geoJson || !geoJson.features) {
-          alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
-          return;
-        }
-
-        // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
-        geoJson.features.forEach(f => {
-          f.properties.name = f.properties.COUNTYNAME;
-        });
-
-        echarts.registerMap('Taiwan', geoJson);
-
-        const sortedUviData = [...uviData].sort((a, b) => b.value - a.value);
-        const isSingleData = (sortedUviData.length <= 1);        
-      
-        // 地圖版
-        const mapOption = {
-          tooltip: {
-            trigger: 'item',
-            formatter: '{b}<br/>UVI: {c}'
-          },
-          visualMap: {
-            min: 0,
-            max: 11,
-            left: 'left',
-            top: 'bottom',
-            text: ['高', '低'],
-            calculable: true,
-            inRange: {
-              color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
-            }
-          },
-          
-          animationDurationUpdate: 1000,
-          animationEasingUpdate: 'cubicInOut',
-          
-          series: [{
-            id: 'uvi',
-            type: 'map',
-            map: 'Taiwan',
-            roam: true,
-            label: { show: true },
-            data: uviData,
-            universalTransition: isSingleData  // 單筆資料時避免動畫
-          }]
-        };
-
-        // 柱狀圖版
-        const barOption = {
-          tooltip: { trigger: 'axis' },
-          xAxis: { type: 'value',name: 'UVI' },
-          yAxis: {
-            type: 'category',
-            data: uviData.map(item => item.name),
-            axisLabel: { interval: 0, rotate: 30 }
-          },
-          
-          animationDurationUpdate: 1000,
-          animationEasingUpdate: 'cubicInOut',
-          
-          series: [{
-            id: 'uvi',
-            type: 'bar',
-            data: sortedUviData.map(item => item.value),
-            universalTransition: isSingleData
-          }]
-        };
-
-        let currentOption = mapOption;
-        myChart.setOption(mapOption);
-
-        // 自動每 3 秒切換一次
-        setInterval(() => {
-          currentOption = (currentOption === mapOption) ? barOption : mapOption;
-          myChart.setOption(currentOption, true);
-        }, 3000);
+      // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
+      geoJson.features.forEach(f => {
+        f.properties.name = f.properties.COUNTYNAME;
       });
-    </script>
+
+      echarts.registerMap('Taiwan', geoJson);
+
+      const sortedUviData = [...uviData].sort((a, b) => b.value - a.value);
+      // const isSingleData = (sortedUviData.length <= 1);        
+    
+      // 地圖版
+      const mapOption = {
+        tooltip: {
+          trigger: 'item',
+          formatter: '{b}<br/>UVI: {c}'
+        },
+        visualMap: {
+          min: 0,
+          max: 11,
+          left: 'left',
+          top: 'bottom',
+          text: ['高', '低'],
+          calculable: true,
+          inRange: {
+            color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+          }
+        },
+        
+        animationDurationUpdate: 1000,
+        animationEasingUpdate: 'cubicInOut',
+      
+        series: [{
+          id: 'uvi',
+          type: 'map',
+          map: 'Taiwan',
+          roam: true,
+          label: { show: true },
+          data: uviData,
+          universalTransition: true
+        }]
+      };
+
+      // 柱狀圖版
+      const barOption = {
+        tooltip: { trigger: 'axis' },
+        xAxis: { type: 'value',name: 'UVI' },
+        yAxis: {
+          type: 'category',
+          data: sortedUviData.map(item => item.name),
+          axisLabel: { interval: 0, rotate: 15 }
+        },
+        
+        animationDurationUpdate: 1000,
+        animationEasingUpdate: 'cubicInOut',
+        
+        series: [{
+          id: 'uvi',
+          type: 'bar',
+          data: sortedUviData.map(item => item.value),
+          universalTransition: true
+        }]
+      };
+
+      myChart.setOption(mapOption);
+
+
+      let currentOption = 'map';
+      const button = document.getElementById('toggleButton');
+      // ✅ 只有「全部縣市」時才啟動動畫切換
+      if (!isAllCounty) {button.style.display = 'none';}
+      
+      button.addEventListener('click', () => {
+        if (currentOption === 'map') {
+          myChart.setOption(barOption, true);
+          currentOption = 'bar';
+        } else {
+          myChart.setOption(mapOption, true);
+          currentOption = 'map';
+        }
+      });
+    });
+  </script>
 
   <table border="1">
       <thead>

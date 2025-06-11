@@ -40,7 +40,7 @@ def index():
     # 選取縣市後的資料(預設ALL)
     county = request.args.get("county", "ALL")
 
-    # df = pd.DataFrame(datas, columns=columns)
+    # s
 
     if county != "ALL":
         # 取得特定縣市的資料
@@ -48,25 +48,25 @@ def index():
         columns = df.columns.tolist()
         datas = df.values.tolist()
 
-    uvi_by_county = (
-        df.groupby("county")["uvi"]
-        .mean()
-        .round(2)
-        .reset_index()
-        .rename(columns={"county": "name", "uvi": "value"})
-    )
+    # uvi_by_county = (
+    #     df.groupby("county")["uvi"]
+    #     .mean()
+    #     .round(2)
+    #     .reset_index()
+    #     .rename(columns={"county": "name", "uvi": "value"})
+    # )
 
-    uvi_data = uvi_by_county.to_dict(orient="records")
+    uvi_data = [{"name": row[0], "value": row[1]} for row in datas]
 
+    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     return render_template(
         "index.html",
         columns=columns,
         datas=datas,
         counties=counties,
         selected_county=county,
-        # x_data=x_data,
-        # y_data=y_data,
         uvi_data=uvi_data,
+        nowtime=nowtime,
     )
 
 
