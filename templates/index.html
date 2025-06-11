@@ -1,22 +1,22 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>首頁</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>首頁</title>
 
-    <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
+  <script src="https://cdn.jsdelivr.net/npm/echarts@5.6.0/dist/echarts.min.js"></script>
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+  <link rel="stylesheet" href="{{url_for('static',filename='style.css')}}">
     
 </head>
 <body>
-    <h1>全球太陽紫外線指數(UVI)-台灣監測站資料</h1>
-    <h3>最新更新時間:{{datas[0][3]}}</h3>
-    <a class="btn-update" href="/update_db">更新資料庫</a>
+  <h1>全球太陽紫外線指數(UVI)-台灣監測站資料</h1>
+  <h3>最新更新時間:{{datas[0][3]}}</h3>
+  <a class="btn-update" href="/update_db">更新資料庫</a>
     
     
-    <form action="/" method="GET">
+  <form action="/" method="GET">
         <label for="county">選取縣市</label>
         <!-- 縣市選擇框 -->
         <select name="county" id="county" >
@@ -26,9 +26,9 @@
             {% endfor %}
         </select>
         <button type="submit">查詢</button> 
-    </form>
+  </form>
     
-    <h2 >目前縣市:{{selected_county}}</h2>
+  <h2 >目前縣市:{{selected_county}}</h2>
 
     <div id="map"></div>
     
@@ -55,8 +55,11 @@
 
         echarts.registerMap('Taiwan', geoJson);
 
-        const option = {
-          
+        const sortedUviData = [...uviData].sort((a, b) => b.value - a.value);
+        const isSingleData = (sortedUviData.length <= 1);        
+      
+        // 地圖版
+        const mapOption = {
           tooltip: {
             trigger: 'item',
             formatter: '{b}<br/>UVI: {c}'
@@ -72,38 +75,71 @@
               color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
             }
           },
+          
+          animationDurationUpdate: 1000,
+          animationEasingUpdate: 'cubicInOut',
+          
           series: [{
-            name: 'UVI',
+            id: 'uvi',
             type: 'map',
             map: 'Taiwan',
             roam: true,
             label: { show: true },
-            data: uviData
+            data: uviData,
+            universalTransition: isSingleData  // 單筆資料時避免動畫
           }]
         };
 
-        myChart.setOption(option);
+        // 柱狀圖版
+        const barOption = {
+          tooltip: { trigger: 'axis' },
+          xAxis: { type: 'value',name: 'UVI' },
+          yAxis: {
+            type: 'category',
+            data: uviData.map(item => item.name),
+            axisLabel: { interval: 0, rotate: 30 }
+          },
+          
+          animationDurationUpdate: 1000,
+          animationEasingUpdate: 'cubicInOut',
+          
+          series: [{
+            id: 'uvi',
+            type: 'bar',
+            data: sortedUviData.map(item => item.value),
+            universalTransition: isSingleData
+          }]
+        };
+
+        let currentOption = mapOption;
+        myChart.setOption(mapOption);
+
+        // 自動每 3 秒切換一次
+        setInterval(() => {
+          currentOption = (currentOption === mapOption) ? barOption : mapOption;
+          myChart.setOption(currentOption, true);
+        }, 3000);
       });
     </script>
 
-    <table border="1">
-        <thead>
-            <tr>
-                {% for col in columns %}
-                <th>{{col}}</th>
-                {% endfor %}
-            </tr>
-        </thead>
-        <tbody>
-            {% for row in datas %}
-            <tr>
-                {% for data in row %}
-                <td>{{data}}</td>
-                {% endfor %}
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
+  <table border="1">
+      <thead>
+          <tr>
+              {% for col in columns %}
+              <th>{{col}}</th>
+              {% endfor %}
+          </tr>
+      </thead>
+      <tbody>
+          {% for row in datas %}
+          <tr>
+              {% for data in row %}
+              <td>{{data}}</td>
+              {% endfor %}
+          </tr>
+          {% endfor %}
+      </tbody>
+  </table>
     
 </body>
 </html>

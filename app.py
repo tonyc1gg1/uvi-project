@@ -39,9 +39,8 @@ def index():
 
     # 選取縣市後的資料(預設ALL)
     county = request.args.get("county", "ALL")
-    # 替換正體字為地圖可對應名稱
 
-    df = pd.DataFrame(datas, columns=columns)
+    # df = pd.DataFrame(datas, columns=columns)
 
     if county != "ALL":
         # 取得特定縣市的資料
@@ -58,9 +57,6 @@ def index():
     )
 
     uvi_data = uvi_by_county.to_dict(orient="records")
-    # # 繪製所需資料
-    # x_data = df["sitename"].to_list()
-    # y_data = df["uvi"].to_list()
 
     return render_template(
         "index.html",

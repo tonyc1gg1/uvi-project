@@ -15,9 +15,10 @@ def update_db():
         # 讀取最新的雲端資料
         df = pd.read_csv(api_url)
         df["datacreationdate"] = pd.to_datetime(df["datacreationdate"], format="mixed")
-        df.dropna()
-        df1 = df[df["uvi"] >= 0]
-        values = df1.values.tolist()
+        df = df.dropna(subset=["uvi"])  # 只排除 uvi 欄位為空值的資料
+        df = df[df["uvi"] >= 0]  # 過濾合理 uvi 數值
+        values = df.values.tolist()
+
         # 寫入資料庫
         conn = open_db()
         cur = conn.cursor()
@@ -59,10 +60,14 @@ def get_uvi_data_from_mysql():
         conn = open_db()
         cur = conn.cursor()
         # sqlstr="(select MAX(datacreationdate) from uvi);"
-        sqlstr = "select sitename,uvi,county,datacreationdate from uvi where datacreationdate=(select MAX(datacreationdate) from uvi);"
+        sqlstr = """
+        SELECT sitename, uvi, county, datacreationdate
+        FROM uvi
+        WHERE datacreationdate >= CURDATE();
+        """
         cur.execute(sqlstr)
         # 輸出資料表欄位
-        print(cur.description)
+        # print(cur.description)
         columns = [col[0] for col in cur.description]
         # 實際的資料
         datas = cur.fetchall()
