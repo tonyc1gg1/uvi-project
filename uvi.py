@@ -61,17 +61,16 @@ def get_uvi_data_from_mysql():
         cur = conn.cursor()
 
         sqlstr = """
-        SELECT county, ROUND(AVG(uvi), 2) AS uvi_avg
+        SELECT sitename, uvi, unit, county, wgs84_lon, wgs84_lat, datacreationdate
         FROM uvi
         WHERE datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
-        GROUP BY county
         """
         cur.execute(sqlstr)
         # 輸出資料表欄位
-        # print(cur.description)
         columns = [col[0] for col in cur.description]
         # 實際的資料
         datas = cur.fetchall()
+
     except Exception as e:
         print(e)
     finally:
@@ -79,6 +78,78 @@ def get_uvi_data_from_mysql():
             conn.close()
 
     return columns, datas
+
+
+# 取全部縣市用 (for 地圖 + 總表)
+def get_uvi_group_by_county():
+    conn = open_db()
+    try:
+        cur = conn.cursor()
+
+        # 全部縣市平均
+        sql = """
+            SELECT county, ROUND(AVG(uvi), 2) AS uvi_avg
+            FROM uvi
+            WHERE datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
+            GROUP BY county
+        """
+        cur.execute(sql)
+        datas = cur.fetchall()
+
+        # 回傳乾淨型態 (list of list)
+        datas_list = [list(row) for row in datas]
+        columns = ["城市", "UVI"]
+
+        # for echarts 地圖用的格式
+        uvi_data = [{"name": row[0], "value": row[1]} for row in datas_list]
+
+        return columns, datas_list, uvi_data
+    finally:
+        conn.close()
+
+
+# 取某一縣市內各測站 (for 表格用)
+def get_uvi_by_county(county):
+    conn = open_db()
+    try:
+        cur = conn.cursor()
+
+        sql = """
+            SELECT sitename, uvi
+            FROM uvi
+            WHERE county = %s
+            AND datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
+        """
+        cur.execute(sql, (county,))
+        datas = cur.fetchall()
+        datas_list = [list(row) for row in datas]
+        columns = ["測站名稱", "UVI"]
+
+        # 地圖維持使用總平均
+        avg_uvi = round(sum(row[1] for row in datas_list) / len(datas_list), 2)
+        uvi_data = [{"name": county, "value": avg_uvi}]
+
+        return columns, datas_list, uvi_data
+    finally:
+        conn.close()
+
+
+# 取出所有縣市
+def get_all_counties():
+    conn = open_db()
+    try:
+        cur = conn.cursor()
+        sql = """
+            SELECT DISTINCT county
+            FROM uvi
+            WHERE datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
+        """
+        cur.execute(sql)
+        result = cur.fetchall()
+        counties = sorted([row[0] for row in result])
+        return counties
+    finally:
+        conn.close()
 
 
 # 本地運行
