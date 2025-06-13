@@ -15,7 +15,7 @@ def update_db():
         # 讀取最新的雲端資料
         df = pd.read_csv(api_url)
         df["datacreationdate"] = pd.to_datetime(df["datacreationdate"], format="mixed")
-        df = df.dropna(subset=["uvi"])  # 只排除 uvi 欄位為空值的資料
+        df = df.dropna(subset=["uvi"])  # 排除 uvi 欄位為空值的資料
         df = df[df["uvi"] >= 0]  # 過濾合理 uvi 數值
         values = df.values.tolist()
 
@@ -86,7 +86,7 @@ def get_uvi_group_by_county():
     try:
         cur = conn.cursor()
 
-        # 全部縣市平均
+        # 取全部縣市平均
         sql = """
             SELECT county, ROUND(AVG(uvi), 2) AS uvi_avg
             FROM uvi
@@ -96,7 +96,6 @@ def get_uvi_group_by_county():
         cur.execute(sql)
         datas = cur.fetchall()
 
-        # 回傳乾淨型態 (list of list)
         datas_list = [list(row) for row in datas]
         columns = ["城市", "UVI"]
 
@@ -148,6 +147,26 @@ def get_all_counties():
         result = cur.fetchall()
         counties = sorted([row[0] for row in result])
         return counties
+    finally:
+        conn.close()
+
+
+# 歷史監測資料(new)
+def get_history_data(county, days=7):
+    conn = open_db()
+    try:
+        cur = conn.cursor()
+        sqlstr = """
+            SELECT sitename, uvi, DATE(datacreationdate) as date
+            FROM uvi
+            WHERE county = %s
+            AND datacreationdate >= NOW() - INTERVAL %s DAY
+            ORDER BY date ASC
+        """
+        cur.execute(sqlstr, (county, days))
+        datas = cur.fetchall()
+        data_list = [list(row) for row in datas]
+        return data_list
     finally:
         conn.close()
 

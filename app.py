@@ -8,6 +8,7 @@ from uvi import (
     get_uvi_group_by_county,
     get_uvi_by_county,
     get_all_counties,
+    get_history_data,
 )
 import json
 
@@ -15,7 +16,6 @@ import json
 app = Flask(__name__)
 
 
-#
 @app.route("/filter", methods=["POST"])
 def filter_data():
     # args=> form
@@ -34,20 +34,40 @@ def filter_data():
     return {"county": county}
 
 
+# 首頁
 @app.route("/")
 def index():
     county = request.args.get("county", "ALL")
+    counties = get_all_counties()  # new
+    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # new
 
     if county == "ALL":
         columns, datas, uvi_data = get_uvi_group_by_county()
+        series_data = None  # new
+        time_list = None  # new
     else:
         columns, datas, uvi_data = get_uvi_by_county(county)
+        _, _, uvi_data = get_uvi_group_by_county()
 
-    counties = (
-        get_all_counties()
-    )  # 你可以另外在 uvi.py 加這個簡單的函式取得所有 county 列表
+        history_data = get_history_data(county, days=7)
+        df = pd.DataFrame(history_data, columns=["sitename", "uvi", "date"])
+        pivot_df = (
+            df.pivot_table(index="date", columns="sitename", values="uvi")
+            .fillna(0)
+            .round(2)
+        )
+        pivot_df.index = pd.to_datetime(pivot_df.index)
+        time_list = pivot_df.index.strftime("%Y-%m-%d").tolist()
+        series_data = [
+            {"name": site, "type": "line", "data": pivot_df[site].tolist()}
+            for site in pivot_df.columns
+        ]
 
-    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # counties = (
+    #     get_all_counties()
+    # )
+
+    # nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     return render_template(
         "index.html",
@@ -57,55 +77,9 @@ def index():
         selected_county=county,
         uvi_data=uvi_data,
         nowtime=nowtime,
+        time_list=time_list,
+        series_data=series_data,
     )
-    # # 取得資料庫最新的資料
-    # columns, datas = get_uvi_data_from_mysql()
-    # # 取出不同縣市給select
-    # df = pd.DataFrame(datas, columns=columns)
-    # # 排序縣市
-    # counties = sorted(df["county"].unique().tolist())
-
-    # # 選取縣市後的資料(預設ALL)
-    # county = request.args.get("county", "ALL")
-
-    # if county != "ALL":
-    #     # 取得特定縣市的資料
-    #     df_county = df[df["county"] == county]
-    #     columns_zh = ["測站名稱", "UVI"]
-    #     datas = df_county[["sitename", "uvi"]].values.tolist()
-
-    #     uvi_by_county = (
-    #         df.groupby("county")["uvi"]
-    #         .mean()
-    #         .round(2)
-    #         .reset_index()
-    #         .rename(columns={"county": "name", "uvi": "value"})
-    #     )
-    #     uvi_data = uvi_by_county.to_dict(orient="records")
-    # else:
-    #     uvi_by_county = (
-    #         df.groupby("county")["uvi"]
-    #         .mean()
-    #         .round(2)
-    #         .reset_index()
-    #         .rename(columns={"county": "name", "uvi": "value"})
-    #     )
-    #     columns_zh = ["城市", "UVI"]
-    #     datas = uvi_by_county[["name", "value"]].values.tolist()
-    #     uvi_data = uvi_by_county.to_dict(orient="records")
-    # # uvi_data = [{"name": row[0], "value": row[1]} for row in datas]
-
-    # nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    # return render_template(
-    #     "index.html",
-    #     columns_zh=columns_zh,
-    #     columns=columns,
-    #     datas=datas,
-    #     counties=counties,
-    #     selected_county=county,
-    #     uvi_data=uvi_data,
-    #     nowtime=nowtime,
-    # )
 
 
 # 更新資料庫

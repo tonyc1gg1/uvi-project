@@ -120,107 +120,127 @@
     const myChart = echarts.init(document.getElementById("map"));
     myChart.showLoading();
 
-    // ✅ 使用正確的 GeoJSON 來源
-    $.get('/static/twCounty2010.geo.json', function (geoJson) {
-      myChart.hideLoading();
+    if (isAllCounty){
+      // ✅ 使用正確的 GeoJSON 來源
+      $.get('/static/twCounty2010.geo.json', function (geoJson) {
+        myChart.hideLoading();
 
-      if (!geoJson || !geoJson.features) {
-        alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
-        return;
-      }
+        if (!geoJson || !geoJson.features) {
+          alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
+          return;
+        }
 
-      // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
-      geoJson.features.forEach(f => {
-        f.properties.name = f.properties.COUNTYNAME;
-      });
+        // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
+        geoJson.features.forEach(f => {
+          f.properties.name = f.properties.COUNTYNAME;
+        });
 
-      echarts.registerMap('Taiwan', geoJson);
+        echarts.registerMap('Taiwan', geoJson);
 
-      const sortedUviData = [...uviData].sort((a, b) => a.value - b.value);
-      // const isSingleData = (sortedUviData.length <= 1);        
-    
-      // 地圖版
-      const mapOption = {
-        backgroundColor: '#2EC0F9',
-
-        tooltip: {
-          trigger: 'item',
-          formatter: '{b}<br/>UVI: {c}'
-        },
-        visualMap: {
-          min: 0,
-          max: 11,
-          left: 'left',
-          top: 'bottom',
-          text: ['高', '低'],
-          calculable: true,
-          inRange: {
-            color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
-          }
-        },
-        
-        animationDurationUpdate: 1500,
-        animationEasingUpdate: 'cubicInOut',
+        const sortedUviData = [...uviData].sort((a, b) => a.value - b.value);
+        // const isSingleData = (sortedUviData.length <= 1);        
       
-        series: [{
-          id: 'uvi',
-          type: 'map',
-          map: 'Taiwan',
-          roam: true,
-          label: { show: true },
-          data: uviData,
-          universalTransition: true
-        }]
-      };
+        // 地圖版
+        const mapOption = {
+          backgroundColor: '#2EC0F9',
 
-      // 柱狀圖版
-      const barOption = {
-                
-        tooltip: { trigger: 'axis' },
-        xAxis: { type: 'value', name: 'UVI' },
-        yAxis: {
-          type: 'category',
-          data: sortedUviData.map(item => item.name),
-          axisLabel: { interval: 0, rotate: 30 }
-        },
-        visualMap: {
-          orient: 'horizontal',
-          left: 'center',
-          min: 0,
-          max: 11,
-          text: ['高', '低'],
-          calculable: true,
-          inRange: {
-            color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+          tooltip: {
+            trigger: 'item',
+            formatter: '{b}<br/>UVI: {c}'
+          },
+          visualMap: {
+            min: 0,
+            max: 11,
+            left: 'left',
+            top: 'bottom',
+            text: ['高', '低'],
+            calculable: true,
+            inRange: {
+              color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+            }
+          },
+          
+          animationDurationUpdate: 1500,
+          animationEasingUpdate: 'cubicInOut',
+        
+          series: [{
+            id: 'uvi',
+            type: 'map',
+            map: 'Taiwan',
+            roam: true,
+            label: { show: true },
+            data: uviData,
+            universalTransition: true
+          }]
+        };
+
+        // 柱狀圖版
+        const barOption = {
+                  
+          tooltip: { trigger: 'axis' },
+          xAxis: { type: 'value', name: 'UVI' },
+          yAxis: {
+            type: 'category',
+            data: sortedUviData.map(item => item.name),
+            axisLabel: { interval: 0, rotate: 30 }
+          },
+          visualMap: {
+            orient: 'horizontal',
+            left: 'center',
+            min: 0,
+            max: 11,
+            text: ['高', '低'],
+            calculable: true,
+            inRange: {
+              color: ['#00ff00', '#ffff00', '#ffa500', '#ff0000', '#8b00ff']
+            }
+          },
+
+          series: [{
+            id: 'uvi',
+            type: 'bar',
+            data: sortedUviData.map(item => item.value),
+            universalTransition: true
+          }]
+        };
+
+        myChart.setOption(mapOption);
+
+        let currentOption = 'map';
+        
+        
+        button.addEventListener('click', () => {
+          if (currentOption === 'map') {
+            myChart.setOption(barOption, true);
+            currentOption = 'bar';
+          } else {
+            myChart.setOption(mapOption, true);
+            currentOption = 'map';
           }
-        },
+        });
+      });
+    } else {
+        myChart.hideLoading();
 
-        series: [{
-          id: 'uvi',
-          type: 'bar',
-          data: sortedUviData.map(item => item.value),
-          universalTransition: true
-        }]
-      };
+        const timeList = {{ time_list | tojson | safe}};
+        const seriesData = {{ series_data | tojson | safe}};
 
-      myChart.setOption(mapOption);
+        const option = {
+          tooltip: { trigger: 'axis' },
+          legend: { top: 'bottom' },
+          xAxis: { type: 'category', data: timeList },
+          yAxis: { type: 'value' },
+          series: seriesData
+        };
 
-
-      let currentOption = 'map';
+        myChart.setOption(option);
+      }
+    if(!isAllCounty){
       const button = document.getElementById('toggleButton');
       // ✅ 只有「全部縣市」時才啟動動畫切換
-      if (!isAllCounty) {button.style.display = 'none';}
-      
-      button.addEventListener('click', () => {
-        if (currentOption === 'map') {
-          myChart.setOption(barOption, true);
-          currentOption = 'bar';
-        } else {
-          myChart.setOption(mapOption, true);
-          currentOption = 'map';
-        }
-      });
-    });
+      button.style.display = 'none';
+    }
+
   </script>
 
   
