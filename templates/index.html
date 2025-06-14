@@ -37,7 +37,7 @@
       
       <div class="control">
         <a class="button is-custom" href="/update_db">
-          <img src="{{ url_for('static', filename='icons/updateremovebg.png')}}" 
+          <img src="{{ url_for('static', filename='icons/updateremovebg.png') }}" 
           style="width: 100px; height: 90px;">
         </a>
       </div>
@@ -62,9 +62,6 @@
             </button>
           </div>
         </form>
-
-        
-        <!-- <h2 >目前縣市:{{selected_county}}最新更新時間: {{ nowtime }}</h2> -->
       </div>
     </div>
   </section>
@@ -121,7 +118,7 @@
 
     if (isAllCounty){
       //  使用本地端GeoJSON 來源
-      $.get('/static/twCounty2010.geo.json', function (geoJson) {
+      $.get("{{ url_for('static', filename='twCounty2010.geo.json') }}", function (geoJson) {
         myChart.hideLoading();
 
         // 檢查有無抓取到geoJson
