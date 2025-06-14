@@ -1,7 +1,6 @@
 from flask import Flask, render_template, request
 from datetime import datetime
 import pandas as pd
-import pymysql
 from uvi import (
     get_uvi_data_from_mysql,
     update_db,
@@ -10,7 +9,6 @@ from uvi import (
     get_all_counties,
     get_history_data,
 )
-import json
 
 
 app = Flask(__name__)
@@ -38,13 +36,13 @@ def filter_data():
 @app.route("/")
 def index():
     county = request.args.get("county", "ALL")
-    counties = get_all_counties()  # new
-    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")  # new
+    counties = get_all_counties()
+    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     if county == "ALL":
         columns, datas, uvi_data = get_uvi_group_by_county()
-        series_data = None  # new
-        time_list = None  # new
+        series_data = None
+        time_list = None
     else:
         columns, datas, uvi_data = get_uvi_by_county(county)
         _, _, uvi_data = get_uvi_group_by_county()
@@ -62,12 +60,6 @@ def index():
             {"name": site, "type": "line", "data": pivot_df[site].tolist()}
             for site in pivot_df.columns
         ]
-
-    # counties = (
-    #     get_all_counties()
-    # )
-
-    # nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
     return render_template(
         "index.html",
@@ -93,4 +85,4 @@ def update_uvi_db():
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(debug=False)

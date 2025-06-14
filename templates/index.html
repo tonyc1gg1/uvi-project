@@ -116,29 +116,28 @@
     const uviData = {{ uvi_data | tojson | safe }};
     const selectedCounty = "{{ selected_county }}";
     const isAllCounty = (selectedCounty === "ALL");
-    // ✅ 初始化圖表要在最外層，確保 myChart 有定義
     const myChart = echarts.init(document.getElementById("map"));
     myChart.showLoading();
 
     if (isAllCounty){
-      // ✅ 使用正確的 GeoJSON 來源
+      //  使用本地端GeoJSON 來源
       $.get('/static/twCounty2010.geo.json', function (geoJson) {
         myChart.hideLoading();
 
+        // 檢查有無抓取到geoJson
         if (!geoJson || !geoJson.features) {
           alert("❌ 載入地圖失敗：geoJson.features 為 undefined");
           return;
         }
 
-        // ✅ 給每個區塊加上 name（ECharts 根據 name 找資料）
+        // 給每個區塊加上 name（ECharts 根據 name 找資料）
         geoJson.features.forEach(f => {
           f.properties.name = f.properties.COUNTYNAME;
         });
 
         echarts.registerMap('Taiwan', geoJson);
 
-        const sortedUviData = [...uviData].sort((a, b) => a.value - b.value);
-        // const isSingleData = (sortedUviData.length <= 1);        
+        const sortedUviData = [...uviData].sort((a, b) => a.value - b.value);       
       
         // 地圖版
         const mapOption = {
@@ -237,7 +236,7 @@
       }
     if(!isAllCounty){
       const button = document.getElementById('toggleButton');
-      // ✅ 只有「全部縣市」時才啟動動畫切換
+      // 只有「全部縣市」時才啟動動畫切換
       button.style.display = 'none';
     }
 
