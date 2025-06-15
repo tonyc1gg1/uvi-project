@@ -1,4 +1,6 @@
+import requests
 import pandas as pd
+from io import StringIO
 import pymysql
 import os
 from dotenv import load_dotenv
@@ -15,9 +17,14 @@ def update_db():
     """
     row_count = 0
     message = ""
+    conn = None
     try:
+        # 改用 requests 下載，避免 SSL 驗證問題
+        response = requests.get(api_url, verify=False, timeout=10)
+        response.raise_for_status()
+
         # 讀取最新的雲端資料
-        df = pd.read_csv(api_url)
+        df = pd.read_csv(StringIO(response.text))
         df["datacreationdate"] = pd.to_datetime(df["datacreationdate"], format="mixed")
         df = df.dropna(subset=["uvi"])  # 排除 uvi 欄位為空值的資料
         df = df[df["uvi"] >= 0]  # 過濾合理 uvi 數值
@@ -25,6 +32,8 @@ def update_db():
 
         # 寫入資料庫
         conn = open_db()
+        if conn is None:
+            raise Exception("資料庫連線失敗")
         cur = conn.cursor()
         cur.executemany(sqlstr, values)
         row_count = cur.rowcount
@@ -37,7 +46,7 @@ def update_db():
         print(e)
         message = f"更新資料失敗:{e}"
     finally:
-        if conn is not None:
+        if conn:
             conn.close()
 
     return row_count, message
@@ -53,11 +62,12 @@ def open_db():
             user=os.environ.get("DB_USER"),
             passwd=os.environ.get("DB_PASSWORD"),
             db=os.environ.get("DB_NAME"),
+            charset="utf8mb4",
         )
+        return conn
     except Exception as e:
         print("資料庫開啟失敗", e)
-
-    return conn
+        return None
 
 
 # 從資料庫取資料
@@ -92,6 +102,8 @@ def get_uvi_data_from_mysql():
 def get_uvi_group_by_county():
     conn = open_db()
     try:
+        if conn is None:
+            return [], [], []
         cur = conn.cursor()
 
         # 取全部縣市平均
@@ -112,13 +124,17 @@ def get_uvi_group_by_county():
 
         return columns, datas_list, uvi_data
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # 取某一縣市內各測站 (for 表格用)
 def get_uvi_by_county(county):
     conn = open_db()
     try:
+        if conn is None:
+            return [], [], []
+
         cur = conn.cursor()
 
         sql = """
@@ -138,13 +154,17 @@ def get_uvi_by_county(county):
 
         return columns, datas_list, uvi_data
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # 取出所有縣市
 def get_all_counties():
     conn = open_db()
     try:
+        if conn is None:
+            return []
+
         cur = conn.cursor()
         sql = """
             SELECT DISTINCT county
@@ -156,13 +176,17 @@ def get_all_counties():
         counties = sorted([row[0] for row in result])
         return counties
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # 歷史監測資料(new)
 def get_history_data(county, days=7):
     conn = open_db()
     try:
+        if conn is None:
+            return []
+
         cur = conn.cursor()
         sqlstr = """
             SELECT sitename, uvi, DATE(datacreationdate) as date
@@ -176,7 +200,8 @@ def get_history_data(county, days=7):
         data_list = [list(row) for row in datas]
         return data_list
     finally:
-        conn.close()
+        if conn:
+            conn.close()
 
 
 # 本地運行
