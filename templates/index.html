@@ -202,8 +202,8 @@
 
         myChart.setOption(mapOption);
 
+        const button = document.getElementById('toggleButton');
         let currentOption = 'map';
-        
         
         button.addEventListener('click', () => {
           if (currentOption === 'map') {
@@ -215,6 +215,7 @@
           }
         });
       });
+
     } else {
         myChart.hideLoading();
 
@@ -231,15 +232,13 @@
 
         myChart.setOption(option);
       }
-    if(!isAllCounty){
-      const button = document.getElementById('toggleButton');
-      // 只有「全部縣市」時才啟動動畫切換
-      button.style.display = 'none';
+    if (!isAllCounty) {
+    document.getElementById('toggleButton').style.display = 'none';
     }
 
   </script>
 
-  
+
     
 </body>
 </html>
