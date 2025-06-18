@@ -192,7 +192,8 @@ def get_history_data(county, days=7):
             SELECT sitename, uvi, DATE(datacreationdate) as date
             FROM uvi
             WHERE county = %s
-            AND datacreationdate >= NOW() - INTERVAL %s DAY
+            AND datacreationdate >= CURDATE() - INTERVAL %s DAY
+            AND uvi IS NOT NULL
             ORDER BY date ASC
         """
         cur.execute(sqlstr, (county, days))
