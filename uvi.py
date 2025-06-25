@@ -189,12 +189,12 @@ def get_history_data(county, days=7):
 
         cur = conn.cursor()
         sqlstr = """
-            SELECT sitename, uvi, DATE(datacreationdate) as date
+            SELECT sitename, DATE(datacreationdate) as date, MAX(uvi)
             FROM uvi
             WHERE county = %s
-            AND datacreationdate >= CURDATE() - INTERVAL %s DAY
-            AND uvi IS NOT NULL
-            ORDER BY date ASC
+            AND datacreationdate >= NOW() - INTERVAL %s DAY
+            GROUP BY sitename, DATE(datacreationdate)
+            ORDER BY sitename, date ASC
         """
         cur.execute(sqlstr, (county, days))
         datas = cur.fetchall()
