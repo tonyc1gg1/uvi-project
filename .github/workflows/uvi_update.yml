@@ -9,7 +9,13 @@ jobs:
     curl-update_db:
         runs-on: ubuntu-latest
         steps:
+<<<<<<< HEAD
             - name: call /update_db endpoint
               run: curl -s https://uvi-project.onrender.com/update_db
 
 
+=======
+            - name:call /update_db endpoint
+              run:curl -s https://uvi-project.onrender.com/update_db
+            
+>>>>>>> fix-uvi-105

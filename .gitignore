@@ -1,3 +1,5 @@
 .env
 .venv/
 UVI project.txt
+__pycache__/
+*.pyc
