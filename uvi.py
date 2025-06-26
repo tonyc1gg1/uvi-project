@@ -199,7 +199,31 @@ def get_history_data(county, days=7):
         cur.execute(sqlstr, (county, days))
         datas = cur.fetchall()
         data_list = [list(row) for row in datas]
-        return data_list
+
+        # 建立DataFrame並轉換無數值類型
+        df = pd.DataFrame(data_list, columns=["sitename", "date", "uvi"])
+        df["uvi"] = pd.to_numeric(df["uvi"], errors="coerce")
+        df["date"] = pd.to_datetime(df["date"])
+
+        # 橫軸時間列表
+        time_list = sorted(df["date"].dt.strftime("%Y-%m-%d").unique().tolist())
+
+        # 每個測站一條線
+        series_data = []
+        for site in df["sitename"].unique():
+            values = []
+            for date in time_list:
+                match = df[
+                    (df["sitename"] == site)
+                    & (df["date"].dt.strftime("%Y-%m-%d") == date)
+                ]
+                if not match.empty:
+                    values.append(round(match["uvi"].values[0], 2))
+                else:
+                    values.append(None)  # 缺失先補空值
+            series_data.append({"name": site, "type": "line", "data": values})
+
+        return time_list, series_data
     finally:
         if conn:
             conn.close()
