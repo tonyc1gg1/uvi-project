@@ -17,19 +17,34 @@ app = Flask(__name__)
 @app.route("/filter", methods=["POST"])
 def filter_data():
     # args=> form
-    county = request.form.get("county")
-    columns, datas = get_uvi_data_from_mysql()
-    df = pd.DataFrame(datas, columns=columns)
-    # 取得特定縣市的資料
-    df1 = (
-        df.groupby("county")
-        .get_group(county)
-        .groupby("sitename")["uvi"]
-        .mean()
-        .round(2)
-    )
-    print(df1)
-    return {"county": county}
+    try:
+        county = request.form.get("county")
+        columns, datas = get_uvi_data_from_mysql()
+        df = pd.DataFrame(datas, columns=columns)
+
+        print("【初始 uvi 型別】", df["uvi"].dtype)
+        print("【初始 uvi 類型分布】")
+        print(df["uvi"].apply(type).value_counts())
+
+        df["uvi"] = pd.to_numeric(df["uvi"], errors="coerce")
+        df_county = df[df["county"] == county].copy()
+
+        print("【初始 uvi 型別】", df["uvi"].dtype)
+        print("【初始 uvi 類型分布】")
+        print(df["uvi"].apply(type).value_counts())
+
+        df_county["uvi"] = pd.to_numeric(df_county["uvi"], errors="coerce")
+
+        # 取得特定縣市的資料
+        df1 = df_county.groupby("sitename")["uvi"].mean().round(1)
+
+        print("【平均結果】")
+        print(df1)
+
+        return {"county": county, "result": df1.to_dict()}
+    except Exception as e:
+        print("🚨 發生錯誤：", str(e))
+        return {"error": str(e)}, 500
 
 
 # 首頁
@@ -48,7 +63,8 @@ def index():
         _, _, uvi_data = get_uvi_group_by_county()
 
         history_data = get_history_data(county, days=7)
-        df = pd.DataFrame(history_data, columns=["sitename", "uvi", "date"])
+        df = pd.DataFrame(history_data, columns=["sitename", "date", "uvi"])
+        df["uvi"] = pd.to_numeric(df["uvi"], errors="coerce")
         pivot_df = (
             df.pivot_table(index="date", columns="sitename", values="uvi")
             .fillna(0)
@@ -85,4 +101,4 @@ def update_uvi_db():
 
 
 if __name__ == "__main__":
-    app.run(debug=False)
+    app.run(debug=True)
