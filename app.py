@@ -62,20 +62,7 @@ def index():
         columns, datas, uvi_data = get_uvi_by_county(county)
         _, _, uvi_data = get_uvi_group_by_county()
 
-        history_data = get_history_data(county, days=7)
-        df = pd.DataFrame(history_data, columns=["sitename", "date", "uvi"])
-        df["uvi"] = pd.to_numeric(df["uvi"], errors="coerce")
-        pivot_df = (
-            df.pivot_table(index="date", columns="sitename", values="uvi")
-            .fillna(0)
-            .round(2)
-        )
-        pivot_df.index = pd.to_datetime(pivot_df.index)
-        time_list = pivot_df.index.strftime("%Y-%m-%d").tolist()
-        series_data = [
-            {"name": site, "type": "line", "data": pivot_df[site].tolist()}
-            for site in pivot_df.columns
-        ]
+        time_list, series_data = get_history_data(county, days=7)
 
     return render_template(
         "index.html",

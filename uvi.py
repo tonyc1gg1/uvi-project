@@ -108,7 +108,7 @@ def get_uvi_group_by_county():
 
         # 取全部縣市平均
         sql = """
-            SELECT county, ROUND(AVG(uvi), 2) AS uvi_avg
+            SELECT county, ROUND(AVG(uvi), 1) AS uvi_avg
             FROM uvi
             WHERE datacreationdate = (SELECT MAX(datacreationdate) FROM uvi)
             GROUP BY county
@@ -149,7 +149,7 @@ def get_uvi_by_county(county):
         columns = ["測站名稱", "UVI"]
 
         # 地圖維持使用總平均
-        avg_uvi = round(sum(row[1] for row in datas_list) / len(datas_list), 2)
+        avg_uvi = round(sum(row[1] for row in datas_list) / len(datas_list), 1)
         uvi_data = [{"name": county, "value": avg_uvi}]
 
         return columns, datas_list, uvi_data
@@ -218,7 +218,7 @@ def get_history_data(county, days=7):
                     & (df["date"].dt.strftime("%Y-%m-%d") == date)
                 ]
                 if not match.empty:
-                    values.append(round(match["uvi"].values[0], 2))
+                    values.append(round(match["uvi"].values[0], 1))
                 else:
                     values.append(None)  # 缺失先補空值
             series_data.append({"name": site, "type": "line", "data": values})
